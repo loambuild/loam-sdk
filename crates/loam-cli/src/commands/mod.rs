@@ -2,10 +2,9 @@ use std::str::FromStr;
 
 use clap::{command, CommandFactory, FromArgMatches, Parser};
 
-pub mod build;
+pub mod build_contracts;
+pub mod build_clients;
 pub mod update_env;
-
-
 
 const ABOUT: &str = "Build contracts";
 
@@ -42,7 +41,8 @@ impl Root {
     }
     pub fn run(&mut self) -> Result<(), Error> {
         match &mut self.cmd {
-            Cmd::Build(build_info) => build_info.run()?,
+            Cmd::BuildContracts(build_info) => build_info.run()?,
+            Cmd::BuildClients(build_info) => build_info.run()?,
             Cmd::UpdateEnv(e) => e.run()?,
         };
         Ok(())
@@ -60,17 +60,23 @@ impl FromStr for Root {
 #[derive(Parser, Debug)]
 pub enum Cmd {
     /// Build contracts
-    Build(build::Cmd),
+    BuildContracts(build_contracts::Cmd),
+
+    /// Turn the contracts you depend on (contract dependencies) into frontend packages (NPM
+    /// dependencies)
+    BuildClients(build_clients::Cmd),
+
     /// Update an environment variable in a .env file
     UpdateEnv(update_env::Cmd),
-    
 }
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     // TODO: stop using Debug for displaying errors
     #[error(transparent)]
-    Build(#[from] build::Error),
+    BuildContracts(#[from] build_contracts::Error),
+    #[error(transparent)]
+    BuildClients(#[from] build_clients::Error),
     #[error(transparent)]
     UpdateEnv(#[from] update_env::Error),
 }
