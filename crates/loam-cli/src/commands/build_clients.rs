@@ -12,7 +12,7 @@ pub enum Error {
 
 impl Cmd {
     pub fn run(&self) -> Result<(), Error> {
-        println!("to do");
+        println!("No environments.toml; nothing to do");
         Ok(())
     }
 }
