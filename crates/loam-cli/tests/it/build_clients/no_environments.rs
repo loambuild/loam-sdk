@@ -1,12 +1,10 @@
-use assert_cmd::Command;
-
 #[test]
 fn no_environments_toml_gives_helpful_message() {
-    Command::cargo_bin("loam")
+    assert_cmd::Command::cargo_bin("loam")
         .unwrap()
         .current_dir(
             env!("CARGO_MANIFEST_DIR").to_string() +
-            "/tests/fixtures/no_environments",
+            "/tests/fixtures/soroban-init-boilerplate",
         )
         .arg("build-clients")
         .assert()
