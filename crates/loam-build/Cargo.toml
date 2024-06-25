@@ -1,6 +1,6 @@
 [package]
 name = "loam-build"
-version = "0.7.0"
+version = "0.7.1"
 edition = "2021"
 description = "A library for gathering Subcontracts and Contracts"
 license = "Apache-2.0"

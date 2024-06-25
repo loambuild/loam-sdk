@@ -6,7 +6,7 @@ repository = "https://github.com/loambuild/loam-sdk"
 authors = ["Willem Wyndham <willem@ahalabs.dev>"]
 license = "Apache-2.0"
 readme = "../../README.md"
-version = "0.9.4"
+version = "0.10.0"
 edition = "2021"
 rust-version = "1.70"
 autobins = false
@@ -27,7 +27,7 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-loam-build = { path = "../loam-build", version = "0.7.0" }
+loam-build = { path = "../loam-build", version = "0.7.1" }
 clap = { version = "4.1.8", features = [
     "derive",
     "env",

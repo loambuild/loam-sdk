@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3](https://github.com/loambuild/loam-sdk/compare/loam-subcontract-core-v0.7.2...loam-subcontract-core-v0.7.3) - 2024-06-25
+
+### Other
+- cargo fmt and clippy -Dpedantic fixes, add to CI ([#89](https://github.com/loambuild/loam-sdk/pull/89))
+
 ## [0.7.2](https://github.com/loambuild/loam-sdk/compare/loam-subcontract-core-v0.7.1...loam-subcontract-core-v0.7.2) - 2024-06-21
 
 ### Other

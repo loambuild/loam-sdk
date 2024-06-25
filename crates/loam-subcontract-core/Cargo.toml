@@ -1,13 +1,13 @@
 [package]
 name = "loam-subcontract-core"
-version = "0.7.2"
+version = "0.7.3"
 edition = "2021"
 description = "Core Subcontract for redeployable contracts"
 license = "Apache-2.0"
 
 
 [dependencies]
-loam-sdk = { path = "../loam-sdk", version = "0.6.10", features = [
+loam-sdk = { path = "../loam-sdk", version = "0.6.11", features = [
     "loam-soroban-sdk",
 ] }
 
