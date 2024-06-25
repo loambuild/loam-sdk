@@ -1,6 +1,6 @@
 [package]
 name = "loam-sdk-macro"
-version = "0.8.0"
+version = "0.8.1"
 edition = "2021"
 description = "Macros needed by loam-sdk"
 license = "Apache-2.0"
@@ -10,7 +10,7 @@ license = "Apache-2.0"
 proc-macro = true
 
 [dependencies]
-loam-build = { path = "../loam-build", version = "0.7.0" }
+loam-build = { path = "../loam-build", version = "0.7.1" }
 proc-macro2 = "1.0"
 syn = { version = "2", features = ["full", "fold", "extra-traits", "visit"] }
 quote = "1.0"

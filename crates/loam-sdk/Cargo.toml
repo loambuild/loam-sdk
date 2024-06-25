@@ -1,6 +1,6 @@
 [package]
 name = "loam-sdk"
-version = "0.6.10"
+version = "0.6.11"
 edition = "2021"
 description = "SDK  for writing smart contracts"
 license = "Apache-2.0"
@@ -12,8 +12,8 @@ crate-type = ["rlib"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-loam-sdk-macro = { path = "../loam-sdk-macro", version = "0.8.0" }
-loam-soroban-sdk = { path = "../loam-soroban-sdk", version = "0.6.10", optional = true }
+loam-sdk-macro = { path = "../loam-sdk-macro", version = "0.8.1" }
+loam-soroban-sdk = { path = "../loam-soroban-sdk", version = "0.6.11", optional = true }
 
 
 [features]
