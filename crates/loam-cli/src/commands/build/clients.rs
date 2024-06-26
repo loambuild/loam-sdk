@@ -56,6 +56,8 @@ pub enum Error {
     #[error(transparent)]
     ConfigAlias(#[from] cli::config::alias::Error),
     #[error(transparent)]
+    ContractInvoke(#[from] cli::contract::invoke::Error),
+    #[error(transparent)]
     Clap(#[from] clap::Error),
     #[error(transparent)]
     WasmHash(#[from] xdrError),
@@ -284,6 +286,7 @@ export default new Client.Client({{
 
                 // Check if we have an alias saved for this contract
                 let alias = Self::get_contract_alias(name, network)?;
+                let is_new_deployment = alias.is_none();
                 if let Some(contract_id) = alias {
                     match self
                         .contract_hash_matches(&contract_id, &hash, network)
@@ -317,6 +320,14 @@ export default new Client.Client({{
                 // Save the alias for future use
                 Self::save_contract_alias(name, &contract_id, network)?;
 
+                // Run init script if it's a new deployment and we're in development or test environment
+                if is_new_deployment && (self.loam_env() == "development" || self.loam_env() == "test") {
+                    if let Some(init_script) = &settings.init {
+                        eprintln!("🚀 Running initialization script for {name:?}");
+                        self.run_init_script(name, &contract_id, init_script).await?;
+                    }
+                }
+
                 eprintln!("🎭 binding {name:?} contract");
                 cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
                     "--contract-id",
@@ -336,6 +347,25 @@ export default new Client.Client({{
             };
         }
 
+        Ok(())
+    }
+
+    async fn run_init_script(&self, name: &str, contract_id: &str, init_script: &str) -> Result<(), Error> {
+        for line in init_script.lines() {
+            let line = line.trim();
+            if line.is_empty() {
+                continue;
+            }
+
+            let mut args = vec!["--id", contract_id];
+            args.extend(line.split_whitespace());
+
+            eprintln!("  ↳ Executing: soroban {}", args.join(" "));
+            cli::contract::invoke::Cmd::parse_arg_vec(&args)?
+                .run_against_rpc_server(None, None)
+                .await?;
+        }
+        eprintln!("✅ Initialization script for {name:?} completed successfully");
         Ok(())
     }
 }
