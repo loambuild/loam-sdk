@@ -2,7 +2,6 @@
 use crate::commands::build::env_toml;
 use stellar_xdr::curr::Error as xdrError;
 use soroban_cli::commands::NetworkRunnable;
-use soroban_cli::commands::network::Args as Network;
 use soroban_cli::utils::contract_hash;
 use soroban_cli::{commands as cli, CommandParser};
 use std::collections::BTreeMap as Map;
@@ -10,6 +9,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use serde_json;
 
+use super::env_toml::Network;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, clap::ValueEnum)]
 pub enum LoamEnv {
@@ -72,7 +72,7 @@ impl Args {
             return Ok(());
         };
 
-        Self::add_network_to_env(current_env.network.clone())?;
+        Self::add_network_to_env(&current_env.network)?;
         Self::handle_accounts(current_env.accounts.as_deref()).await?;
         self.handle_contracts(workspace_root, current_env.contracts.as_ref(), &current_env.network)
             .await?;
@@ -90,24 +90,49 @@ impl Args {
     /// We could set `STELLAR_NETWORK` instead, but when importing contracts, we want to hard-code
     /// the network passphrase. So if given a network name, we use soroban-cli to fetch the RPC url
     /// & passphrase for that named network, and still set the environment variables.
-    fn add_network_to_env(network: cli::network::Args) -> Result<(), Error> {
-        let cli::network::Network {
-            rpc_url,
-            network_passphrase,
-        } = network.get(&cli::config::locator::Args {
-            global: false,
-            config_dir: None,
-        })?;
-
-        std::env::set_var("STELLAR_RPC_URL", &rpc_url);
-        std::env::set_var("STELLAR_NETWORK_PASSPHRASE", &network_passphrase);
-
-        match network.network {
-            Some(name) => eprintln!("🌐 using {name} network"),
-            None => eprintln!("🌐 using network at {rpc_url}"),
+    fn add_network_to_env(network: &env_toml::Network) -> Result<(), Error> {
+        match &network {
+            Network {
+                name: Some(name), ..
+            } => {
+                let cli::network::Network {
+                    rpc_url,
+                    network_passphrase,
+                } = (cli::network::Args {
+                    network: Some(name.clone()),
+                    rpc_url: None,
+                    network_passphrase: None,
+                })
+                .get(&cli::config::locator::Args {
+                    global: false,
+                    config_dir: None,
+                })?;
+                eprintln!("🌐 using {name} network");
+                std::env::set_var("STELLAR_RPC_URL", rpc_url);
+                std::env::set_var("STELLAR_NETWORK_PASSPHRASE", network_passphrase);
+            }
+            Network {
+                rpc_url: Some(rpc_url),
+                network_passphrase: Some(passphrase),
+                ..
+            } => {
+                std::env::set_var("STELLAR_RPC_URL", rpc_url);
+                std::env::set_var("STELLAR_NETWORK_PASSPHRASE", passphrase);
+                eprintln!("🌐 using network at {rpc_url}");
+            }
+            _ => return Err(Error::MalformedNetwork),
         }
 
         Ok(())
+    }
+
+
+    fn get_network_args(network: &Network) -> cli::network::Args {
+        cli::network::Args {
+            rpc_url: network.rpc_url.clone(),
+            network_passphrase: network.network_passphrase.clone(),
+            network: network.name.clone(),
+        }
     }
 
     fn get_config_locator() -> cli::config::locator::Args {
@@ -121,7 +146,7 @@ impl Args {
         let account = std::env::var("STELLAR_ACCOUNT")
             .expect("No STELLAR_ACCOUNT environment variable set");
         cli::config::Args {
-            network: network.clone(),
+            network: Self::get_network_args(network),
             locator: Self::get_config_locator(),
             source_account: account,
             hd_path: Some(0),
@@ -140,7 +165,7 @@ impl Args {
             contract_id: contract_id.to_string(),
             out_file: None, 
             locator: Self::get_config_locator(),
-            network: network.clone(),
+            network: Self::get_network_args(network),
         }
             .run_against_rpc_server(None, None)
             .await?;
