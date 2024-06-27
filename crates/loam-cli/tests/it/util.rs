@@ -64,6 +64,13 @@ impl TestEnv {
         soroban
     }
 
+    pub fn replace_file(&self, path1: &str, path2: &str) {
+        let file_path1 = self.cwd.join(path1);
+        let file_path2 = self.cwd.join(path2);
+        let content = std::fs::read_to_string(&file_path1).expect("Failed to read file1");
+        std::fs::write(&file_path2, content).expect("Failed to modify file");
+    }
+
     pub fn set_environments_toml(&self, contents: impl AsRef<[u8]>) {
         std::fs::write(self.cwd.join("environments.toml"), contents).unwrap();
     }

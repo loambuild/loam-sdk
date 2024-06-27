@@ -78,3 +78,57 @@ hello.workspace = true
             .stderr(predicates::str::contains("No contract named \"hello\""));
     });
 }
+
+#[test]
+fn contract_alias_skips_install() {
+    TestEnv::from("soroban-init-boilerplate", |env| {
+        env.set_environments_toml(
+            r#"
+development.accounts = [
+    { name = "alice" },
+]
+
+[development.network]
+rpc-url = "http://localhost:8000/rpc"
+network-passphrase = "Standalone Network ; February 2017"
+
+[development.contracts]
+hello_world.workspace = true
+"#,
+        );
+        let output = env.loam("build").output().expect("Failed to execute command");
+
+        // Print the standard output and standard error
+        println!("stdout: {}", String::from_utf8_lossy(&output.stdout));
+        eprintln!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+
+        // Optionally, you can still assert if the command should fail
+        assert!(!output.status.success());
+
+        assert!(String::from_utf8_lossy(&output.stderr).contains("🍽️ importing \"hello_world\" contract"));
+
+        let output2 = env.loam("build").output().expect("Failed to execute command");
+
+        println!("stdout: {}", String::from_utf8_lossy(&output2.stdout));
+        eprintln!("stderr: {}", String::from_utf8_lossy(&output2.stderr));
+
+        assert!(!output2.status.success());
+        assert!(String::from_utf8_lossy(&output2.stderr).contains("✅ Contract \"hello_world\" is up to date"));
+
+        let file= "contracts/increment/src/lib.rs";
+        let file_replaced= "contracts/hello_world/src/lib.rs";
+        env.replace_file(file, file_replaced);
+
+        let output3 = env.loam("build").output().expect("Failed to execute command");
+
+        println!("stdout: {}", String::from_utf8_lossy(&output3.stdout));
+        eprintln!("stderr: {}", String::from_utf8_lossy(&output3.stderr));
+
+        assert!(!output3.status.success());
+        assert!(String::from_utf8_lossy(&output3.stderr).contains("🔄 Updating contract \"hello_world\""));
+
+
+
+    });
+}
+
