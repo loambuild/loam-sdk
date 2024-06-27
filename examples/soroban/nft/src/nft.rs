@@ -14,6 +14,7 @@ use crate::{
 pub struct MyNonFungibleToken {
     admin: Address,
     name: Bytes,
+    total_count: u32,
     owners_to_nft_ids: Map<Address, u32>,
     nft_ids_to_owners: Map<u32, Address>,
     nft_ids_to_metadata: Map<u32, Bytes>,
@@ -24,6 +25,7 @@ impl MyNonFungibleToken {
         MyNonFungibleToken {
             admin,
             name,
+            total_count: 0,
             owners_to_nft_ids: Map::new(env()),
             nft_ids_to_owners: Map::new(env()),
             nft_ids_to_metadata: Map::new(env()),
@@ -45,19 +47,20 @@ impl IsInitable for MyNonFungibleToken {
 }
 
 impl IsNonFungible for MyNonFungibleToken {
-    // Mint a new NFT with the given ID, owner, and metadata
-    fn mint(&mut self, id: u32, owner: Address, metadata: Bytes) {
+    // Mint a new NFT with the given owner address and metadata, returning the id
+    fn mint(&mut self, owner: Address, metadata: Bytes) -> u32 {
         owner.require_auth();
 
-        // if the nft id is not already in the contract's storage we can add it
-        // todo: handle this more gracefully
-        if let Some(_metadata) = self.nft_ids_to_metadata.get(id.clone()) {
-            panic!("NFT with this ID already exists");
-        }
+        let current_count = self.total_count;
+        let new_id = current_count + 1;
 
-        self.nft_ids_to_metadata.set(id.clone(), metadata);
-        self.nft_ids_to_owners.set(id.clone(), owner.clone());
-        self.owners_to_nft_ids.set(owner, id);
+        //todo: check that the metadata is unique
+        self.nft_ids_to_metadata.set(new_id.clone(), metadata);
+        self.nft_ids_to_owners.set(new_id.clone(), owner.clone());
+        self.owners_to_nft_ids.set(owner, new_id);
+        self.total_count = new_id;
+
+        new_id
     }
 
     // Transfer the NFT from the current owner to the new owner
@@ -84,5 +87,9 @@ impl IsNonFungible for MyNonFungibleToken {
     // Get the NFT from the contract's storage by owner id
     fn get_owner(&self, id: u32) -> Option<Address> {
         self.nft_ids_to_owners.get(id)
+    }
+
+    fn get_total_count(&self) -> u32 {
+        self.total_count
     }
 }
