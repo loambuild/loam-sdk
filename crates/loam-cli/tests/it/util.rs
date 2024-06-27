@@ -53,6 +53,14 @@ impl TestEnv {
         loam
     }
 
+    pub fn loam_env(&self, cmd: &str, env: &str) -> Command {
+        let mut loam = Command::cargo_bin("loam").unwrap();
+        loam.current_dir(&self.cwd);
+        loam.arg(cmd);
+        loam.arg(env);
+        loam
+    }
+
     pub fn soroban(&self, cmd: &str) -> Command {
         let mut soroban = Command::new("soroban");
         soroban.env(
