@@ -14,9 +14,9 @@ use crate::{
 pub struct MyNonFungibleToken {
     admin: Address,
     name: Bytes,
-    owners_to_nft_ids: Map<Address, Bytes>,
-    nft_ids_to_owners: Map<Bytes, Address>,
-    nft_ids_to_metadata: Map<Bytes, Bytes>,
+    owners_to_nft_ids: Map<Address, u32>,
+    nft_ids_to_owners: Map<u32, Address>,
+    nft_ids_to_metadata: Map<u32, Bytes>,
 }
 
 impl MyNonFungibleToken {
@@ -46,12 +46,7 @@ impl IsInitable for MyNonFungibleToken {
 
 impl IsNonFungible for MyNonFungibleToken {
     // Mint a new NFT with the given ID, owner, and metadata
-    fn mint(
-        &mut self,
-        id: Bytes, //todo: change this to a u32?
-        owner: Address,
-        metadata: Bytes,
-    ) {
+    fn mint(&mut self, id: u32, owner: Address, metadata: Bytes) {
         owner.require_auth();
 
         // if the nft id is not already in the contract's storage we can add it
@@ -66,7 +61,7 @@ impl IsNonFungible for MyNonFungibleToken {
     }
 
     // Transfer the NFT from the current owner to the new owner
-    fn transfer(&mut self, id: Bytes, current_owner: Address, new_owner: Address) {
+    fn transfer(&mut self, id: u32, current_owner: Address, new_owner: Address) {
         if let Some(owner_id) = self.nft_ids_to_owners.get(id.clone()) {
             if owner_id != current_owner {
                 panic!("You are not the owner of this NFT");
@@ -82,12 +77,12 @@ impl IsNonFungible for MyNonFungibleToken {
     }
 
     // Get the NFT from the contract's storage by id
-    fn get_nft(&self, id: Bytes) -> Option<Bytes> {
+    fn get_nft(&self, id: u32) -> Option<Bytes> {
         self.nft_ids_to_metadata.get(id)
     }
 
     // Get the NFT from the contract's storage by owner id
-    fn get_owner(&self, id: Bytes) -> Option<Address> {
+    fn get_owner(&self, id: u32) -> Option<Address> {
         self.nft_ids_to_owners.get(id)
     }
 }
