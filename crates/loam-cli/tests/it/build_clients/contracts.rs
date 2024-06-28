@@ -101,6 +101,7 @@ hello_world.workspace = true
             .output()
             .expect("Failed to execute command");
 
+        println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
         // ensure it imports
         assert!(output.status.success());
         assert!(String::from_utf8_lossy(&output.stderr)
@@ -111,6 +112,7 @@ hello_world.workspace = true
             .output()
             .expect("Failed to execute command");
 
+        println!("stderr: {}", String::from_utf8_lossy(&output2.stderr));
         // ensure alias retrieval works
         assert!(output2.status.success());
         assert!(String::from_utf8_lossy(&output2.stderr)
@@ -125,8 +127,7 @@ hello_world.workspace = true
             .output()
             .expect("Failed to execute command");
 
-        
-        println!("stderr: {}",String::from_utf8_lossy(&output3.stderr));
+        println!("stderr: {}", String::from_utf8_lossy(&output3.stderr));
         // ensure contract hash change check works, should update in dev mode
         assert!(output3.status.success());
         assert!(String::from_utf8_lossy(&output3.stderr)
