@@ -21,6 +21,7 @@ pub struct MyNonFungibleToken {
 }
 
 impl MyNonFungibleToken {
+    #[must_use]
     pub fn new(admin: Address, name: Bytes) -> Self {
         MyNonFungibleToken {
             admin,
@@ -55,8 +56,8 @@ impl IsNonFungible for MyNonFungibleToken {
         let new_id = current_count + 1;
 
         //todo: check that the metadata is unique
-        self.nft_ids_to_metadata.set(new_id.clone(), metadata);
-        self.nft_ids_to_owners.set(new_id.clone(), owner.clone());
+        self.nft_ids_to_metadata.set(new_id, metadata);
+        self.nft_ids_to_owners.set(new_id, owner.clone());
         self.owners_to_nft_ids.set(owner, new_id);
         self.total_count = new_id;
 
@@ -65,16 +66,17 @@ impl IsNonFungible for MyNonFungibleToken {
 
     // Transfer the NFT from the current owner to the new owner
     fn transfer(&mut self, id: u32, current_owner: Address, new_owner: Address) {
-        if let Some(owner_id) = self.nft_ids_to_owners.get(id.clone()) {
-            if owner_id != current_owner {
-                panic!("You are not the owner of this NFT");
-            }
+        if let Some(owner_id) = self.nft_ids_to_owners.get(id) {
+            assert!(
+                owner_id != current_owner,
+                "You are not the owner of this NFT"
+            );
             // remove the current owner
-            self.nft_ids_to_owners.remove(id.clone());
+            self.nft_ids_to_owners.remove(id);
             self.owners_to_nft_ids.remove(current_owner);
 
             // add the new owner
-            self.nft_ids_to_owners.set(id.clone(), new_owner.clone());
+            self.nft_ids_to_owners.set(id, new_owner.clone());
             self.owners_to_nft_ids.set(new_owner, id);
         }
     }
