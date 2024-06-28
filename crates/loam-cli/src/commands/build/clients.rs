@@ -15,10 +15,16 @@ pub enum LoamEnv {
     Production,
 }
 
+impl std::fmt::Display for LoamEnv {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", format!("{self:?}").to_lowercase())
+    }
+}
+
 #[derive(clap::Args, Debug, Clone, Copy)]
 pub struct Args {
-    #[arg(env = "LOAM_ENV", value_enum, default_value = "production")]
-    pub env: LoamEnv,
+    #[arg(env = "LOAM_ENV", value_enum)]
+    pub env: Option<LoamEnv>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -49,7 +55,8 @@ pub enum Error {
 
 impl Args {
     pub async fn run(&self, workspace_root: &std::path::Path) -> Result<(), Error> {
-        let Some(current_env) = env_toml::Environment::get(workspace_root, &self.loam_env())?
+        let Some(current_env) =
+            env_toml::Environment::get(workspace_root, &self.loam_env(LoamEnv::Production))?
         else {
             return Ok(());
         };
@@ -62,8 +69,8 @@ impl Args {
         Ok(())
     }
 
-    fn loam_env(self) -> String {
-        format!("{:?}", self.env).to_lowercase()
+    fn loam_env(self, default: LoamEnv) -> String {
+        self.env.unwrap_or(default).to_string()
     }
 
     /// Parse the network settings from the environments.toml file and set `STELLAR_RPC_URL` and
@@ -192,7 +199,7 @@ impl Args {
                 .await?;
 
                 eprintln!("🍽️ importing {:?} contract", name.clone());
-                let allow_http = if self.loam_env() == "development" {
+                let allow_http = if self.loam_env(LoamEnv::Production) == "development" {
                     "\n  allowHttp: true,"
                 } else {
                     ""

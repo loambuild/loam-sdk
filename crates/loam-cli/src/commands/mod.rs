@@ -3,6 +3,7 @@ use std::str::FromStr;
 use clap::{command, CommandFactory, FromArgMatches, Parser};
 
 pub mod build;
+pub mod dev;
 pub mod update_env;
 
 const ABOUT: &str = "Build contracts and generate front ends";
@@ -39,6 +40,7 @@ impl Root {
         match &mut self.cmd {
             Cmd::Build(build_info) => build_info.run().await?,
             Cmd::UpdateEnv(e) => e.run()?,
+            Cmd::Dev(dev_info) => dev_info.run().await?,
         };
         Ok(())
     }
@@ -59,6 +61,9 @@ pub enum Cmd {
 
     /// Update an environment variable in a .env file
     UpdateEnv(update_env::Cmd),
+
+    /// Monitor contracts and environments.toml for changes and rebuild as needed
+    Dev(dev::Cmd),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -68,4 +73,6 @@ pub enum Error {
     BuildContracts(#[from] build::Error),
     #[error(transparent)]
     UpdateEnv(#[from] update_env::Error),
+    #[error(transparent)]
+    Dev(#[from] dev::Error),
 }

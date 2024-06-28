@@ -38,8 +38,8 @@ pub struct Cmd {
     #[arg(long)]
     pub package: Option<String>,
     /// Build with the specified profile
-    #[arg(long, default_value = "release")]
-    pub profile: String,
+    #[arg(long)]
+    pub profile: Option<String>,
     /// Build with the list of features activated, space or comma separated
     #[arg(long, help_heading = "Features")]
     pub features: Option<String>,
@@ -92,11 +92,17 @@ pub enum Error {
 }
 
 impl Cmd {
-    pub async fn run(&self) -> Result<(), Error> {
-        let working_dir = env::current_dir().map_err(Error::GettingCurrentDir)?;
+    pub fn list_packages(&self) -> Result<Vec<Package>, Error> {
         let metadata = self.metadata()?;
         let packages = self.packages(&metadata)?;
         let packages = loam_build::deps::get_workspace(&packages)?;
+        Ok(packages)
+    }
+
+    pub async fn run(&self) -> Result<(), Error> {
+        let working_dir = env::current_dir().map_err(Error::GettingCurrentDir)?;
+        let metadata = self.metadata()?;
+        let packages = self.list_packages()?;
         if self.list {
             for p in packages {
                 println!("{}", p.name);
@@ -125,10 +131,11 @@ impl Cmd {
             ));
             cmd.arg("--crate-type=cdylib");
             cmd.arg("--target=wasm32-unknown-unknown");
-            if self.profile == "release" {
+            let profile = self.profile.as_deref().unwrap_or("release");
+            if profile == "release" {
                 cmd.arg("--release");
-            } else {
-                cmd.arg(format!("--profile={}", self.profile));
+            } else if profile != "debug" {
+                cmd.arg(format!("--profile={profile}"));
             }
             if self.all_features {
                 cmd.arg("--all-features");
@@ -167,7 +174,7 @@ impl Cmd {
                 let file = format!("{}.wasm", p.name.replace('-', "_"));
                 let target_file_path = Path::new(target_dir)
                     .join("wasm32-unknown-unknown")
-                    .join(&self.profile)
+                    .join(profile)
                     .join(&file);
                 let out_file_path = out_dir.join(&file);
                 if !out_file_path.exists() {
