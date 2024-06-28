@@ -1,9 +1,13 @@
 #![allow(clippy::struct_excessive_bools)]
 use crate::commands::build::env_toml;
+use serde_json;
 use soroban_cli::commands::NetworkRunnable;
+use soroban_cli::utils::contract_hash;
 use soroban_cli::{commands as cli, CommandParser};
 use std::collections::BTreeMap as Map;
 use std::fmt::Debug;
+use std::hash::Hash;
+use stellar_xdr::curr::Error as xdrError;
 
 use super::env_toml::Network;
 
@@ -37,6 +41,8 @@ pub enum Error {
     NeedAtLeastOneAccount,
     #[error("⛔ ️No contract named {0:?}")]
     BadContractName(String),
+    #[error("⛔ ️Contract update not allowed in production for {0:?}")]
+    ContractUpdateNotAllowed(String),
     #[error(transparent)]
     ContractInstall(#[from] cli::contract::install::Error),
     #[error(transparent)]
@@ -44,7 +50,19 @@ pub enum Error {
     #[error(transparent)]
     ContractBindings(#[from] cli::contract::bindings::typescript::Error),
     #[error(transparent)]
+    ContractFetch(#[from] cli::contract::fetch::Error),
+    #[error(transparent)]
+    ConfigLocator(#[from] cli::config::locator::Error),
+    #[error(transparent)]
+    ConfigAlias(#[from] cli::config::alias::Error),
+    #[error(transparent)]
     Clap(#[from] clap::Error),
+    #[error(transparent)]
+    WasmHash(#[from] xdrError),
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
 }
 
 impl Args {
@@ -56,8 +74,12 @@ impl Args {
 
         Self::add_network_to_env(&current_env.network)?;
         Self::handle_accounts(current_env.accounts.as_deref()).await?;
-        self.handle_contracts(workspace_root, current_env.contracts.as_ref())
-            .await?;
+        self.handle_contracts(
+            workspace_root,
+            current_env.contracts.as_ref(),
+            &current_env.network,
+        )
+        .await?;
 
         Ok(())
     }
@@ -108,6 +130,99 @@ impl Args {
         Ok(())
     }
 
+    fn get_network_args(network: &Network) -> cli::network::Args {
+        cli::network::Args {
+            rpc_url: network.rpc_url.clone(),
+            network_passphrase: network.network_passphrase.clone(),
+            network: network.name.clone(),
+        }
+    }
+
+    fn get_config_locator() -> cli::config::locator::Args {
+        cli::config::locator::Args {
+            global: false,
+            config_dir: None,
+        }
+    }
+
+    fn get_config_dir(network: &Network) -> cli::config::Args {
+        let account =
+            std::env::var("STELLAR_ACCOUNT").expect("No STELLAR_ACCOUNT environment variable set");
+        cli::config::Args {
+            network: Self::get_network_args(network),
+            locator: Self::get_config_locator(),
+            source_account: account,
+            hd_path: Some(0),
+        }
+    }
+
+    fn get_contract_alias(
+        name: &str,
+        network: &Network,
+    ) -> Result<Option<String>, cli::config::alias::Error> {
+        let config_dir = Self::get_config_dir(network);
+        let network_passphrase = std::env::var("STELLAR_NETWORK_PASSPHRASE")
+            .expect("No STELLAR_NETWORK_PASSPHRASE environment variable set");
+        config_dir.get_contract_id(name, &network_passphrase)
+    }
+
+    async fn contract_hash_matches(
+        &self,
+        contract_id: &str,
+        hash: &str,
+        network: &Network,
+    ) -> Result<bool, Error> {
+        let hash_vec = cli::contract::fetch::Cmd {
+            contract_id: contract_id.to_string(),
+            out_file: None,
+            locator: Self::get_config_locator(),
+            network: Self::get_network_args(network),
+        }
+        .run_against_rpc_server(None, None)
+        .await?;
+        let ctrct_hash = contract_hash(&hash_vec)?;
+        Ok(hex::encode(ctrct_hash) == hash)
+    }
+
+    fn save_contract_alias(
+        name: &str,
+        contract_id: &str,
+        network: &Network,
+    ) -> Result<(), cli::config::alias::Error> {
+        let config_dir = Self::get_config_dir(network);
+        config_dir.save_contract_id(contract_id, name)
+    }
+
+    fn write_contract_template(
+        self,
+        workspace_root: &std::path::Path,
+        name: &str,
+        contract_id: &str,
+    ) -> Result<(), Error> {
+        let allow_http = if self.loam_env() == "development" {
+            "\n  allowHttp: true,"
+        } else {
+            ""
+        };
+        let network = std::env::var("STELLAR_NETWORK_PASSPHRASE")
+            .expect("No STELLAR_NETWORK_PASSPHRASE environment variable set");
+        let template = format!(
+            r#"import * as Client from '{name}';
+import {{ rpcUrl }} from './util';
+    
+export default new Client.Client({{
+  networkPassphrase: '{network}',
+  contractId: '{contract_id}',
+  rpcUrl,{allow_http}
+  publicKey: undefined,
+}});
+"#
+        );
+        let path = workspace_root.join(format!("src/contracts/{name}.ts"));
+        std::fs::write(path, template)?;
+        Ok(())
+    }
+
     async fn handle_accounts(accounts: Option<&[env_toml::Account]>) -> Result<(), Error> {
         let Some(accounts) = accounts else {
             return Err(Error::NeedAtLeastOneAccount);
@@ -142,6 +257,7 @@ impl Args {
         &self,
         workspace_root: &std::path::Path,
         contracts: Option<&Map<Box<str>, env_toml::Contract>>,
+        network: &Network,
     ) -> Result<(), Error> {
         let Some(contracts) = contracts else {
             return Ok(());
@@ -166,16 +282,40 @@ impl Args {
                 .to_string();
                 eprintln!("    ↳ hash: {hash}");
 
+                // Check if we have an alias saved for this contract
+                let alias = Self::get_contract_alias(name, network)?;
+                if let Some(contract_id) = alias {
+                    match self
+                        .contract_hash_matches(&contract_id, &hash, network)
+                        .await
+                    {
+                        Ok(true) => {
+                            eprintln!("✅ Contract {name:?} is up to date");
+                            continue;
+                        }
+                        Ok(false) if self.loam_env() == "production" => {
+                            return Err(Error::ContractUpdateNotAllowed(name.to_string()));
+                        }
+                        Ok(false) => eprintln!("🔄 Updating contract {name:?}"),
+                        Err(e) => return Err(e),
+                    }
+                }
+
                 eprintln!("🪞 instantiating {name:?} smart contract");
-                //  TODO: check if hash is already the installed version, skip the rest if so
-                let contract_id =
-                    cli::contract::deploy::wasm::Cmd::parse_arg_vec(&["--wasm-hash", &hash])?
-                        .run_against_rpc_server(None, None)
-                        .await?
-                        .into_result()
-                        .expect("no contract id returned by 'contract deploy'");
-                // TODO: save the contract id for use in subsequent runs
+                let contract_id = cli::contract::deploy::wasm::Cmd::parse_arg_vec(&[
+                    "--alias",
+                    name,
+                    "--wasm-hash",
+                    &hash,
+                ])?
+                .run_against_rpc_server(None, None)
+                .await?
+                .into_result()
+                .expect("no contract id returned by 'contract deploy'");
                 eprintln!("    ↳ contract_id: {contract_id}");
+
+                // Save the alias for future use
+                Self::save_contract_alias(name, &contract_id, network)?;
 
                 eprintln!("🎭 binding {name:?} contract");
                 cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
@@ -192,27 +332,7 @@ impl Args {
                 .await?;
 
                 eprintln!("🍽️ importing {:?} contract", name.clone());
-                let allow_http = if self.loam_env() == "development" {
-                    "\n  allowHttp: true,"
-                } else {
-                    ""
-                };
-                let network = std::env::var("STELLAR_NETWORK_PASSPHRASE")
-                    .expect("No STELLAR_NETWORK_PASSPHRASE environment variable set");
-                let template = format!(
-                    r#"import * as Client from '{name}';
-import {{ rpcUrl }} from './util';
-
-export default new Client.Client({{
-  networkPassphrase: '{network}',
-  contractId: '{contract_id}',
-  rpcUrl,{allow_http}
-  publicKey: undefined,
-}});
-"#
-                );
-                let path = workspace_root.join(format!("src/contracts/{name}.ts"));
-                std::fs::write(path, template).expect("could not write contract template");
+                self.write_contract_template(workspace_root, name, &contract_id)?;
             };
         }
 

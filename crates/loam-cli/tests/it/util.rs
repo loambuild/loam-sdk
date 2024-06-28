@@ -53,6 +53,14 @@ impl TestEnv {
         loam
     }
 
+    pub fn loam_env(&self, cmd: &str, env: &str) -> Command {
+        let mut loam = Command::cargo_bin("loam").unwrap();
+        loam.current_dir(&self.cwd);
+        loam.arg(cmd);
+        loam.arg(env);
+        loam
+    }
+
     pub fn soroban(&self, cmd: &str) -> Command {
         let mut soroban = Command::new("soroban");
         soroban.env(
@@ -62,6 +70,13 @@ impl TestEnv {
         soroban.current_dir(&self.cwd);
         soroban.arg(cmd);
         soroban
+    }
+
+    pub fn replace_file(&self, path1: &str, path2: &str) {
+        let file_path1 = self.cwd.join(path1);
+        let file_path2 = self.cwd.join(path2);
+        let content = std::fs::read_to_string(&file_path1).expect("Failed to read file1");
+        std::fs::write(&file_path2, content).expect("Failed to modify file");
     }
 
     pub fn set_environments_toml(&self, contents: impl AsRef<[u8]>) {
