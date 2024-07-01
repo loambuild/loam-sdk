@@ -23,6 +23,7 @@ pub struct MyNonFungibleToken {
 impl MyNonFungibleToken {
     #[must_use]
     pub fn new(admin: Address, name: Bytes) -> Self {
+        
         MyNonFungibleToken {
             admin,
             name,
@@ -66,6 +67,7 @@ impl IsNonFungible for MyNonFungibleToken {
 
     // Transfer the NFT from the current owner to the new owner
     fn transfer(&mut self, id: u32, current_owner: Address, new_owner: Address) {
+        current_owner.require_auth();
         if let Some(owner_id) = self.nft_ids_to_owners.get(id) {
             assert!(
                 owner_id != current_owner,
