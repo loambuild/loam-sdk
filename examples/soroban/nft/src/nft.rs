@@ -42,7 +42,7 @@ impl Default for MyNonFungibleToken {
 }
 
 impl IsInitable for MyNonFungibleToken {
-    fn nft_init(&mut self, admin: Address, name: Bytes) {
+    fn nft_init(&self, admin: Address, name: Bytes) {
         Contract::admin_get().unwrap().require_auth();
         MyNonFungibleToken::set_lazy(MyNonFungibleToken::new(admin, name));
     }
