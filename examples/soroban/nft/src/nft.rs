@@ -23,7 +23,6 @@ pub struct MyNonFungibleToken {
 impl MyNonFungibleToken {
     #[must_use]
     pub fn new(admin: Address, name: Bytes) -> Self {
-        
         MyNonFungibleToken {
             admin,
             name,
