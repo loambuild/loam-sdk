@@ -71,7 +71,7 @@ impl IsNonFungible for MyNonFungibleToken {
         self.get_nft(id).expect("NFT does not exist");
         if let Some(owner_id) = self.nft_ids_to_owners.get(id) {
             assert!(
-                owner_id != current_owner,
+                owner_id == current_owner,
                 "You are not the owner of this NFT"
             );
             // remove the current owner
