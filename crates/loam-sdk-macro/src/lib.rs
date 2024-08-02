@@ -108,3 +108,20 @@ pub fn derive_contract(args: TokenStream, item: TokenStream) -> TokenStream {
     let parsed: Item = syn::parse(item.clone()).expect("failed to parse Item");
     derive_contract_impl(proc_macro2::TokenStream::from(args), parsed).into()
 }
+
+/// Generates a contract Client for a given asset.
+/// It is expected that the name of an asset, e.g. "native" or "USDC:G1...."
+///
+/// # Panics
+///
+
+#[proc_macro]
+pub fn stellar_asset(input: TokenStream) -> TokenStream {
+    // Parse the input as a string literal
+    let input_str = syn::parse_macro_input!(input as syn::LitStr);
+    let network = std::env::var("STELLAR_NETWORK").unwrap_or_else(|_| "local".to_owned());
+    let asset = util::parse_asset_literal(&input_str, &network);
+
+    // Return the generated code as a TokenStream
+    asset.into()
+}

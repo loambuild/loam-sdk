@@ -12,6 +12,10 @@ proc-macro = true
 
 [dependencies]
 loam-build = { path = "../loam-build", version = "0.7.2" }
+soroban-sdk = { workspace = true, features = ["testutils"] }
+stellar-strkey = { workspace = true }
+
+sha2 = { workspace = true }
 proc-macro2 = "1.0"
 syn = { version = "2", features = ["full", "fold", "extra-traits", "visit"] }
 quote = "1.0"
@@ -20,7 +24,8 @@ thiserror = { workspace = true }
 syn-file-expand = "0.3.0"
 cargo_metadata = { workspace = true }
 darling = "0.20.8"
-itertools = "0.12.1"
+itertools = "0.13.0"
+regex = "1.10.5"
 
 [dev-dependencies]
 assert_fs = "1.0.13"

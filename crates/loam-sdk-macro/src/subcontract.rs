@@ -250,37 +250,8 @@ fn group_to_ident(g: &Group) -> Ident {
 #[cfg(test)]
 mod tests {
 
-    use std::io::{Read, Write};
-
-    /// Format the given snippet. The snippet is expected to be *complete* code.
-    /// When we cannot parse the given snippet, this function returns `None`.
-    fn format_snippet(snippet: &str) -> String {
-        let mut child = std::process::Command::new("rustfmt")
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .spawn()
-            .unwrap();
-        child
-            .stdin
-            .as_mut()
-            .unwrap()
-            .write_all(snippet.as_bytes())
-            .map_err(p_e)
-            .unwrap();
-        child.wait().unwrap();
-        let mut buf = String::new();
-        child.stdout.unwrap().read_to_string(&mut buf).unwrap();
-        println!("\n\n\n{buf}\n\n\n");
-        buf
-    }
     use super::*;
-
-    fn equal_tokens(expected: &TokenStream, actual: &TokenStream) {
-        assert_eq!(
-            format_snippet(&expected.to_string()),
-            format_snippet(&actual.to_string())
-        );
-    }
+    use crate::util::*;
 
     #[test]
     fn first() {
@@ -374,9 +345,5 @@ mod tests {
         equal_tokens(&output, &result);
         // let impl_ = syn::parse_str::<ItemImpl>(result.as_str()).unwrap();
         // println!("{impl_:#?}");
-    }
-    fn p_e(e: std::io::Error) -> std::io::Error {
-        eprintln!("{e:#?}");
-        e
     }
 }

@@ -37,6 +37,9 @@ clap = { version = "4.1.8", features = [
 ] }
 
 cargo_metadata = { workspace = true }
+sha2 = { workspace = true }
+
+
 clap-cargo-extra = "0.3.0"
 
 thiserror = "1.0.31"
@@ -51,7 +54,6 @@ itertools = "0.12.1"
 strsim = "0.11.1"
 heck = "0.5.0"
 pathdiff = "0.2.1"
-sha2 = "0.10.7"
 hex = "0.4.3"
 shlex = "1.1.0"
 symlink = "0.1.0"

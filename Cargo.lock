@@ -1018,6 +1018,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "example-wallet"
+version = "0.0.0"
+dependencies = [
+ "loam-sdk",
+ "loam-subcontract-core",
+]
+
+[[package]]
 name = "faster-hex"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2485,6 +2493,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "itertools"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+dependencies = [
+ "either",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2706,10 +2723,14 @@ dependencies = [
  "assert_fs",
  "cargo_metadata 0.18.1",
  "darling",
- "itertools 0.12.1",
+ "itertools 0.13.0",
  "loam-build",
  "proc-macro2",
  "quote",
+ "regex",
+ "sha2 0.10.8",
+ "soroban-sdk",
+ "stellar-strkey",
  "syn 2.0.39",
  "syn-file-expand",
  "thiserror",
@@ -3018,9 +3039,9 @@ dependencies = [
 
 [[package]]
 name = "openssl-sys"
-version = "0.9.102"
+version = "0.9.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c597637d56fbc83893a35eb0dd04b2b8e7a50c91e64e9493e398b5df4fb45fa2"
+checksum = "7f9e8deee91df40a943c71b917e5874b951d32a802526c85721ce3b776c929d6"
 dependencies = [
  "cc",
  "libc",
@@ -3876,9 +3897,9 @@ dependencies = [
 
 [[package]]
 name = "sha1_smol"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae1a47186c03a32177042e55dbc5fd5aee900b8e0069a8d70fba96a9375cd012"
+checksum = "bbfa15b3dddfee50a0fff136974b3e1bde555604ba463834a7eb7deb6417705d"
 
 [[package]]
 name = "sha2"

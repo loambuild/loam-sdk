@@ -85,7 +85,7 @@ STELLAR_ACCOUNT=bob mint --amount 2000000 --to bob
         assert!(String::from_utf8_lossy(&output.stderr).contains(
             "✅ Initialization script for \"soroban_token_contract\" completed successfully"
         ));
-    })
+    });
 }
 
 #[test]
