@@ -4398,6 +4398,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "stellar_version"
+version = "0.1.0"
+dependencies = [
+ "cargo_metadata 0.18.1",
+]
+
+[[package]]
 name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

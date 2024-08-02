@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/*", "crates/loam-cli/examples/soroban/*", "test/*"]
+members = ["crates/*", "crates/loam-cli/examples/soroban/*", "stellar_version", "test/*"]
 exclude = ["test/*"]
 
 [workspace.package]
@@ -14,6 +14,7 @@ loam-soroban-sdk = { path = "./crates/loam-soroban-sdk" }
 loam-sdk-macro = { path = "./crates/loam-sdk-macro" }
 loam-subcontract-ft = { path = "./crates/loam-subcontract-ft" }
 
+cargo-run-bin = "1.7.3"
 cargo_metadata = "0.18.1"
 thiserror = "1.0.38"
 

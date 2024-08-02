@@ -4,6 +4,8 @@ export PATH := './target/bin:' + env_var('PATH')
 export CONFIG_DIR := 'target/'
 # hash := `soroban contract install --wasm ./target/wasm32-unknown-unknown/contracts/example_status_message.wasm`
 
+stellar-version := `cargo run --bin stellar_version`
+
 
 
 [private]
@@ -28,7 +30,8 @@ build:
 
 # Setup the project to use a pinned version of the CLI
 setup:
-    -cargo binstall -y --install-path ./target/bin soroban-cli --version 21.0.0
+    -cargo binstall -y --install-path ./target/bin stellar-cli --version {{stellar-version}}
+
 
 # Build loam-cli test contracts to speed up testing
 build-cli-test-contracts:
