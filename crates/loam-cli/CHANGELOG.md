@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.1](https://github.com/loambuild/loam/compare/loam-cli-v0.14.0...loam-cli-v0.14.1) - 2024-08-05
+
+### Added
+- *(CLI)* enable string for account def in environments.toml ([#137](https://github.com/loambuild/loam/pull/137))
+
+### Other
+- release ([#141](https://github.com/loambuild/loam/pull/141))
+- add urls to cargo.toml files ([#140](https://github.com/loambuild/loam/pull/140))
+
 ## [0.14.0](https://github.com/loambuild/loam/compare/loam-cli-v0.13.2...loam-cli-v0.14.0) - 2024-07-31
 
 ### Other
