@@ -59,6 +59,7 @@ toml = { version = "0.8.12", features = ["parse"] }
 rand = "0.8.5"
 wasm-gen = { version = "0.1.4" }
 notify = "6.1.1"
+stellar-strkey = "0.0.8"
 stellar-xdr = "21.0.0"
 rust-embed = { version = "8.2.0", features = ["debug-embed"] }
 regex = "1.10.5"

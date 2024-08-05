@@ -196,7 +196,7 @@ impl TestEnv {
 
     pub fn loam(&self, cmd: &str) -> Command {
         if cmd == "build" {
-            self.loam_build("production", true)
+            self.loam_build("development", true)
         } else {
             let mut loam = Command::cargo_bin("loam").unwrap();
             loam.current_dir(&self.cwd);

@@ -5,15 +5,15 @@ fn uses_manifest_path_for_build_command() {
     TestEnv::from("soroban-init-boilerplate", |env| {
         env.set_environments_toml(
             r#"
-production.accounts = [
+development.accounts = [
     { name = "alice" },
 ]
 
-[production.network]
+[development.network]
 rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
-[production.contracts]
+[development.contracts]
 hello_world.client = false
 soroban_increment_contract.client = false
 soroban_custom_types_contract.client = false

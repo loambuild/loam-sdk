@@ -5,15 +5,15 @@ fn run_network_from_rpc_and_passphrase() {
     TestEnv::from("soroban-init-boilerplate", |env| {
         env.set_environments_toml(
             r#"
-production.accounts = [
+development.accounts = [
     { name = "alice" },
 ]
 
-[production.network]
+[development.network]
 rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
-[production.contracts]
+[development.contracts]
 hello_world.client = false
 soroban_increment_contract.client = false
 soroban_custom_types_contract.client = false
@@ -44,13 +44,13 @@ fn run_named_network() {
 
         env.set_environments_toml(
             r#"
-production.accounts = [
+development.accounts = [
     { name = "alice" },
 ]
 
-production.network.name = "lol"
+development.network.name = "lol"
 
-[production.contracts]
+[development.contracts]
 hello_world.client = false
 soroban_increment_contract.client = false
 soroban_custom_types_contract.client = false

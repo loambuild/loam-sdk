@@ -10,6 +10,7 @@ use std::collections::BTreeMap as Map;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::process::Command;
+use stellar_strkey;
 use stellar_xdr::curr::Error as xdrError;
 
 use super::env_toml::Network;
@@ -50,8 +51,10 @@ pub enum Error {
     NeedAtLeastOneAccount,
     #[error("⛔ ️No contract named {0:?}")]
     BadContractName(String),
-    #[error("⛔ ️Contract update not allowed in production for {0:?}")]
-    ContractUpdateNotAllowed(String),
+    #[error(
+        "⛔ ️Contract must be identified by its ID in production or staging. Invalid ID: {0:?}"
+    )]
+    InvalidContractID(String),
     #[error("⛔ ️Unable to parse init script: {0:?}")]
     InitParseFailure(String),
     #[error("⛔ ️Failed to execute subcommand: {0:?}\n{1:?}")]
@@ -252,6 +255,32 @@ export default new Client.Client({{
             .is_ok())
     }
 
+    async fn generate_contract_bindings(
+        self,
+        workspace_root: &std::path::Path,
+        name: &str,
+        contract_id: &str,
+    ) -> Result<(), Error> {
+        eprintln!("🎭 binding {name:?} contract");
+        cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
+            "--contract-id",
+            contract_id,
+            "--output-dir",
+            workspace_root
+                .join(format!("packages/{name}"))
+                .to_str()
+                .expect("we do not support non-utf8 paths"),
+            "--overwrite",
+        ])?
+        .run()
+        .await?;
+
+        eprintln!("🍽️ importing {name:?} contract");
+        self.write_contract_template(workspace_root, name, contract_id)?;
+
+        Ok(())
+    }
+
     async fn handle_accounts(accounts: Option<&[env_toml::Account]>) -> Result<(), Error> {
         let Some(accounts) = accounts else {
             return Err(Error::NeedAtLeastOneAccount);
@@ -299,6 +328,21 @@ export default new Client.Client({{
         if package_names.is_empty() {
             return Ok(());
         }
+        let env = self.loam_env(LoamEnv::Production);
+        if env == "production" || env == "staging" {
+            if let Some(contracts) = contracts {
+                for (name, _) in contracts.iter().filter(|(_, settings)| settings.client) {
+                    // ensure contract names are valid contract IDs
+                    if stellar_strkey::Contract::from_string(name.as_ref()).is_err() {
+                        return Err(Error::InvalidContractID(name.to_string()));
+                    }
+                    self.generate_contract_bindings(workspace_root, name, name)
+                        .await?;
+                }
+            }
+            return Ok(());
+        }
+
         // ensure contract names are valid
         if let Some(contracts) = contracts {
             for (name, _) in contracts.iter().filter(|(_, settings)| settings.client) {
@@ -348,9 +392,6 @@ export default new Client.Client({{
                         eprintln!("✅ Contract {name:?} is up to date");
                         continue;
                     }
-                    Ok(false) if self.loam_env(LoamEnv::Production) == "production" => {
-                        return Err(Error::ContractUpdateNotAllowed(name.to_string()));
-                    }
                     Ok(false) => eprintln!("🔄 Updating contract {name:?}"),
                     Err(e) => return Err(e),
                 }
@@ -373,9 +414,7 @@ export default new Client.Client({{
             Self::save_contract_alias(&name, &contract_id, network)?;
 
             // Run init script if we're in development or test environment
-            if self.loam_env(LoamEnv::Production) == "development"
-                || self.loam_env(LoamEnv::Production) == "testing"
-            {
+            if env == "development" || env == "testing" {
                 if let Some(settings) = settings {
                     if let Some(init_script) = &settings.init {
                         eprintln!("🚀 Running initialization script for {name:?}");
@@ -384,23 +423,8 @@ export default new Client.Client({{
                     }
                 }
             }
-
-            eprintln!("🎭 binding {name:?} contract");
-            cli::contract::bindings::typescript::Cmd::parse_arg_vec(&[
-                "--contract-id",
-                &contract_id,
-                "--output-dir",
-                workspace_root
-                    .join(format!("packages/{name}"))
-                    .to_str()
-                    .expect("we do not support non-utf8 paths"),
-                "--overwrite",
-            ])?
-            .run()
-            .await?;
-
-            eprintln!("🍽️ importing {:?} contract", name.clone());
-            self.write_contract_template(workspace_root, &name, &contract_id)?;
+            self.generate_contract_bindings(workspace_root, &name, &contract_id)
+                .await?;
         }
 
         Ok(())

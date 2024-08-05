@@ -12,15 +12,15 @@ fn contracts_built() {
         env.set_environments_toml(
             format!(
                 r#"
-production.accounts = [
+development.accounts = [
     {{ name = "alice" }},
 ]
 
-[production.network]
+[development.network]
 rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
-[production.contracts]
+[development.contracts]
 {}
 "#,
                 contracts
@@ -60,11 +60,11 @@ fn contracts_built_by_default() {
     TestEnv::from("soroban-init-boilerplate", |env| {
         env.set_environments_toml(
             r#"
-production.accounts = [
+development.accounts = [
     { name = "alice" },
 ]
 
-[production.network]
+[development.network]
 rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
@@ -92,15 +92,15 @@ fn contract_with_bad_name_prints_useful_error() {
     TestEnv::from("soroban-init-boilerplate", |env| {
         env.set_environments_toml(
             r#"
-production.accounts = [
+development.accounts = [
     { name = "alice" },
 ]
 
-[production.network]
+[development.network]
 rpc-url = "http://localhost:8000/rpc"
 network-passphrase = "Standalone Network ; February 2017"
 
-[production.contracts]
+[development.contracts]
 hello.client = true
 soroban_increment_contract.client = false
 soroban_custom_types_contract.client = false
@@ -143,7 +143,7 @@ soroban_token_contract.client = false
             .output()
             .expect("Failed to execute command");
 
-        println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
+        //println!("stderr: {}", String::from_utf8_lossy(&output.stderr));
         // ensure it imports
         assert!(output.status.success());
         assert!(String::from_utf8_lossy(&output.stderr)
@@ -154,7 +154,7 @@ soroban_token_contract.client = false
             .output()
             .expect("Failed to execute command");
 
-        println!("stderr: {}", String::from_utf8_lossy(&output2.stderr));
+        //println!("stderr: {}", String::from_utf8_lossy(&output2.stderr));
         // ensure alias retrieval works
         assert!(output2.status.success());
         assert!(String::from_utf8_lossy(&output2.stderr)
@@ -165,11 +165,33 @@ soroban_token_contract.client = false
             .output()
             .expect("Failed to execute command");
 
-        println!("stderr: {}", String::from_utf8_lossy(&output3.stderr));
+        //println!("stderr: {}", String::from_utf8_lossy(&output3.stderr));
+        //println!("stdout: {}", String::from_utf8_lossy(&output3.stdout));
         // ensure contract hash change check works, should update in dev mode
         assert!(output3.status.success());
-        assert!(String::from_utf8_lossy(&output3.stderr)
-            .contains("🔄 Updating contract \"hello_world\""));
+        let message = String::from_utf8_lossy(&output3.stderr);
+        assert!(message.contains("🔄 Updating contract \"hello_world\""));
+        let Some(contract_id) = extract_contract_id(&message) else {
+            panic!("Could not find contract ID in stderr");
+        };
+        env.set_environments_toml(format!(
+            r#"
+production.accounts = [
+    {{ name = "alice" }},
+]
+
+[production.network]
+rpc-url = "http://localhost:8000/rpc"
+network-passphrase = "Standalone Network ; February 2017"
+
+[production.contracts]
+{}.client = true
+"#,
+            contract_id
+        ));
+
+        // ensure production can identify via contract ID
+        env.loam_build("production", true).assert().success();
 
         env.set_environments_toml(
             r#"
@@ -194,10 +216,21 @@ soroban_token_contract.client = false
             .output()
             .expect("Failed to execute command");
 
-        println!("stderr: {}", String::from_utf8_lossy(&output4.stderr));
+        //println!("stderr: {}", String::from_utf8_lossy(&output4.stderr));
         // ensure contract hash change check works, should throw error in production
         assert!(!output4.status.success());
         assert!(String::from_utf8_lossy(&output4.stderr)
-            .contains("⛔ ️Contract update not allowed in production for \"hello_world\""));
+            .contains("️Contract must be identified by its ID in production or staging"));
     });
+}
+
+fn extract_contract_id(stderr: &str) -> Option<String> {
+    stderr
+        .lines()
+        .find(|line| line.contains("contract_id:"))
+        .and_then(|line| {
+            line.split_whitespace()
+                .last()
+                .map(|id| id.trim().to_string())
+        })
 }
